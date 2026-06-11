@@ -187,9 +187,9 @@ function Hero({setActive}){
 
 function HomeOverview({setActive}){
   const cards=[
-    {icon:"📖",title:"Question Bank",desc:"80+ conceptual, statutory, and scenario questions indexed by Tier-1 Indian law firm tags with explicit technical filters.",action:"Start reading",id:"qa"},
+    {icon:"📖",title:"Question Bank",desc:"100+ conceptual, statutory, and scenario questions indexed by Tier-1 Indian law firm tags with explicit technical filters.",action:"Start reading",id:"qa"},
     {icon:"🤖",title:"Partner Simulator",desc:"Simulate an interview with a top law firm partner. Powered by Qwen AI to deliver custom questions, legal counters, and final analytics reports.",action:"Launch simulator",id:"sim"},
-    {icon:"🏛",title:"Aspirant Directory",desc:"Network with fellow students, clerks, and associates preparing for corporate tracks and litigation chambers across major Indian cities.",action:"Open Directory",id:"community"},
+    {icon:"🏛",title:"Aspirant Directory",desc:"Network with fellow students and associates preparing for corporate tracks and litigation chambers across major Indian cities.",action:"Open Directory",id:"community"},
   ];
   return (
     <div style={{maxWidth:1000,margin:"48px auto",padding:"0 24px"}}>
@@ -224,7 +224,7 @@ function QuestionBank(){
   const ss={padding:"10px 14px",borderRadius:8,border:"1px solid "+CS.border,fontSize:13,fontFamily:font.body,color:CS.text,background:CS.white};
   return (
     <div style={{maxWidth:900,margin:"40px auto",padding:"0 24px"}}>
-      <h2 style={{fontSize:22,fontFamily:font.display,color:CS.text,margin:"0 0 24px"}}>Tier-1 Interview Questions Database</h2>
+      <h2 style={{fontSize:22,fontFamily:font.display,color:CS.text,margin:"0 0 24px"}}>Tier-1 Firms Interview Questions Database</h2>
       <div className="filter-bar" style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:20,marginBottom:28,display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
         <input type="text" placeholder="Search concept, clause, or judgment..." value={search} onChange={e=>setSearch(e.target.value)} style={{...ss,flex:1,minWidth:200,background:CS.creamD}}/>
         <select value={selTopic} onChange={e=>setSelTopic(e.target.value)} style={ss}><option value="All">All Topics</option>{TOPICS.map(t=><option key={t} value={t}>{t}</option>)}</select>
@@ -280,12 +280,12 @@ function Simulator(){
       try{
         const r=await fetch(BACKEND_URL+"/api/health",{signal:AbortSignal.timeout(5000)});
         const d=await r.json();
-        if(d.ok&&d.keyLoaded){setBackendStatus("ok");setBackendMsg("Connected — Qwen ("+d.model+") ready");}
+        if(d.ok&&d.keyLoaded){setBackendStatus("ok");setBackendMsg("Connected — ready");}
         else if(d.ok&&!d.keyLoaded){setBackendStatus("error");setBackendMsg("Backend running but OPENROUTER_KEY not set. Edit .env and restart.");}
         else{setBackendStatus("error");setBackendMsg("Backend responded unexpectedly.");}
       }catch(e){
         setBackendStatus("error");
-        setBackendMsg("Cannot reach backend at "+BACKEND_URL+". Start the server: cd legallysound-backend && node server.js");
+        setBackendMsg("Cannot reach backend");
       }
     })();
   },[]);
@@ -536,6 +536,7 @@ export default function App(){
         <span style={{color:CS.brass,fontSize:18,fontFamily:font.display,fontWeight:700}}>§</span>
         <p style={{color:CS.textLL,fontSize:12,fontFamily:font.body,margin:"8px 0 4px"}}>LegallySound — Interview preparation for Indian law firm aspirants</p>
         <p style={{color:"rgba(148,163,184,0.5)",fontSize:11,fontFamily:font.body,margin:0}}>Questions sourced from Legally India, Glassdoor, Lawctopus and practitioner accounts. Verify all statutory references before your interview.</p>
+        <p style={{color:"rgba(148,163,184,0.5)",fontSize:11,fontFamily:font.body,margin:0}}>Suggestions? Write to mihir.r1017@gmail.com</p>
       </footer>
     </div>
   );
