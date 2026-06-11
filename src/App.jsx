@@ -326,6 +326,137 @@ function QuestionBank(){
   );
 }
 
+function parseEvaluation(text){
+  if(!text) return null;
+  const dims=["LEGAL KNOWLEDGE","COMMUNICATION","ANALYTICAL DEPTH","COMPOSURE UNDER PRESSURE","PRACTICAL READINESS","OVERALL"];
+  const scores=dims.map(dim=>{
+    const re=new RegExp(dim+":\\s*(\\d+)/10","i");
+    const m=text.match(re);
+    const score=m?parseInt(m[1]):null;
+    // extract evidence line
+    const evRe=new RegExp(dim+":[\\s\\S]*?Evidence:\\s*\"([^\"]+)\"","i");
+    const evM=text.match(evRe);
+    // extract assessment
+    const asRe=new RegExp(dim+":[\\s\\S]*?Assessment:\\s*([^\\n]+(?:\\n(?![A-Z]).*)*?)(?=\\n[A-Z]|$)","i");
+    const asM=text.match(asRe);
+    return {dim,score,evidence:evM?evM[1]:null,assessment:asM?asM[1].trim():null};
+  });
+  const verdictM=text.match(/VERDICT:\s*(STRONG HIRE|HIRE|BORDERLINE|REJECT)/i);
+  const verdict=verdictM?verdictM[1].toUpperCase():null;
+  const verdictNoteM=text.match(/VERDICT:[^\n]*\n([^\n]+(?:\n[^\n]+)?)/i);
+  const verdictNote=verdictNoteM?verdictNoteM[1].trim():null;
+  const fixM=text.match(/WHAT TO FIX BEFORE NEXT INTERVIEW:([\s\S]*?)(?=WHAT WAS DONE WELL:|$)/i);
+  const fixes=fixM?fixM[1].trim().split("\n").map(l=>l.replace(/^\d+\.\s*/,"").trim()).filter(Boolean):[];
+  const wellM=text.match(/WHAT WAS DONE WELL:([\s\S]*?)$/i);
+  const wells=wellM?wellM[1].trim().split("\n").map(l=>l.replace(/^\d+\.\s*/,"").trim()).filter(Boolean):[];
+  return {scores,verdict,verdictNote,fixes,wells};
+}
+
+function ScoreCard({dim,score,evidence,assessment}){
+  const isOverall=dim==="OVERALL";
+  const col=score===null?"#94a3b8":score>=8?CS.green:score>=6?CS.brass:score>=4?"#d97706":CS.red;
+  const bg=score===null?"rgba(148,163,184,0.08)":score>=8?"rgba(21,128,61,0.06)":score>=6?CS.brassS:score>=4?"rgba(217,119,6,0.08)":"rgba(185,28,28,0.06)";
+  return (
+    <div style={{background:CS.white,border:"1px solid "+(score===null?CS.border:col+"44"),borderRadius:10,padding:isOverall?"20px 24px":16,marginBottom:isOverall?0:10}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:evidence||assessment?10:0}}>
+        <span style={{fontSize:isOverall?13:12,fontWeight:700,color:CS.textL,fontFamily:font.body,letterSpacing:"0.04em"}}>{dim}</span>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          {score!==null&&(
+            <div style={{display:"flex",gap:3}}>
+              {[1,2,3,4,5,6,7,8,9,10].map(n=>(
+                <div key={n} style={{width:isOverall?10:8,height:isOverall?10:8,borderRadius:2,background:n<=score?col:"rgba(0,0,0,0.08)"}}/>
+              ))}
+            </div>
+          )}
+          <span style={{fontSize:isOverall?22:18,fontWeight:800,fontFamily:font.display,color:col,minWidth:40,textAlign:"right"}}>{score!==null?score+"/10":"–"}</span>
+        </div>
+      </div>
+      {evidence&&<p style={{margin:"0 0 6px",fontSize:11.5,color:CS.slate,fontFamily:font.body,fontStyle:"italic",lineHeight:1.5,background:"rgba(0,0,0,0.03)",padding:"6px 8px",borderRadius:4,borderLeft:"2px solid "+col}}>"{evidence}"</p>}
+      {assessment&&<p style={{margin:0,fontSize:12.5,color:CS.textL,fontFamily:font.body,lineHeight:1.6}}>{assessment}</p>}
+    </div>
+  );
+}
+
+function EvalResult({evaluation,onReset}){
+  const parsed=parseEvaluation(evaluation);
+  const verdictColor=!parsed?.verdict?"#94a3b8":parsed.verdict==="STRONG HIRE"?CS.green:parsed.verdict==="HIRE"?"#16a34a":parsed.verdict==="BORDERLINE"?CS.brass:CS.red;
+  const verdictBg=!parsed?.verdict?"rgba(148,163,184,0.08)":parsed.verdict==="STRONG HIRE"?"rgba(21,128,61,0.1)":parsed.verdict==="HIRE"?"rgba(22,163,74,0.08)":parsed.verdict==="BORDERLINE"?CS.brassS:"rgba(185,28,28,0.08)";
+
+  if(!parsed){
+    return (
+      <div style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:28}}>
+        <h3 style={{fontSize:18,fontFamily:font.display,color:CS.text,margin:"0 0 16px"}}>Interview Evaluation</h3>
+        <div style={{whiteSpace:"pre-wrap",fontFamily:font.mono,fontSize:12.5,background:CS.cream,padding:16,borderRadius:8,lineHeight:1.7,color:CS.navy}}>{evaluation}</div>
+        <button onClick={onReset} style={{marginTop:20,padding:"10px 20px",background:CS.navy,color:CS.cream,border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:font.body}}>Start New Session</button>
+      </div>
+    );
+  }
+
+  const mainScores=parsed.scores.filter(s=>s.dim!=="OVERALL");
+  const overall=parsed.scores.find(s=>s.dim==="OVERALL");
+
+  return (
+    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+
+      {/* Verdict banner */}
+      <div style={{background:verdictBg,border:"1px solid "+verdictColor+"44",borderRadius:12,padding:"20px 24px",textAlign:"center"}}>
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.12em",color:verdictColor,fontFamily:font.body,marginBottom:6}}>PARTNER VERDICT</div>
+        <div style={{fontSize:26,fontWeight:800,color:verdictColor,fontFamily:font.display,marginBottom:parsed.verdictNote?8:0}}>{parsed.verdict||"–"}</div>
+        {parsed.verdictNote&&<p style={{margin:0,fontSize:13,color:CS.textL,fontFamily:font.body,lineHeight:1.5}}>{parsed.verdictNote}</p>}
+      </div>
+
+      {/* Score cards */}
+      <div>
+        <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.textLL,fontFamily:font.body,margin:"0 0 10px"}}>DIMENSION BREAKDOWN</p>
+        {mainScores.map(s=><ScoreCard key={s.dim} {...s}/>)}
+      </div>
+
+      {/* Overall */}
+      {overall&&(
+        <div>
+          <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.textLL,fontFamily:font.body,margin:"0 0 10px"}}>OVERALL</p>
+          <ScoreCard {...overall}/>
+        </div>
+      )}
+
+      {/* Fix + Well */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+        {parsed.fixes.length>0&&(
+          <div style={{background:"rgba(185,28,28,0.04)",border:"1px solid rgba(185,28,28,0.15)",borderRadius:10,padding:16}}>
+            <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.red,fontFamily:font.body,margin:"0 0 10px"}}>WHAT TO FIX</p>
+            {parsed.fixes.map((f,i)=>(
+              <div key={i} style={{display:"flex",gap:8,marginBottom:8}}>
+                <span style={{fontSize:12,fontWeight:700,color:CS.red,flexShrink:0,fontFamily:font.body}}>{i+1}.</span>
+                <p style={{margin:0,fontSize:12.5,color:CS.textL,fontFamily:font.body,lineHeight:1.5}}>{f}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {parsed.wells.length>0&&(
+          <div style={{background:"rgba(21,128,61,0.04)",border:"1px solid rgba(21,128,61,0.15)",borderRadius:10,padding:16}}>
+            <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.green,fontFamily:font.body,margin:"0 0 10px"}}>WHAT WAS DONE WELL</p>
+            {parsed.wells.map((w,i)=>(
+              <div key={i} style={{display:"flex",gap:8,marginBottom:8}}>
+                <span style={{fontSize:12,fontWeight:700,color:CS.green,flexShrink:0,fontFamily:font.body}}>{i+1}.</span>
+                <p style={{margin:0,fontSize:12.5,color:CS.textL,fontFamily:font.body,lineHeight:1.5}}>{w}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Raw fallback */}
+      <details style={{marginTop:4}}>
+        <summary style={{fontSize:12,color:CS.textLL,cursor:"pointer",fontFamily:font.body,userSelect:"none"}}>View raw evaluation text</summary>
+        <div style={{marginTop:10,whiteSpace:"pre-wrap",fontFamily:font.mono,fontSize:11.5,background:CS.cream,padding:16,borderRadius:8,lineHeight:1.7,color:CS.navy,maxHeight:300,overflow:"auto"}}>{evaluation}</div>
+      </details>
+
+      <button onClick={onReset} style={{padding:"12px 0",background:CS.navy,color:CS.cream,border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:font.body}}>Start New Session</button>
+    </div>
+  );
+}
+
+
 function Simulator(){
   const [phase,setPhase]=useState("setup");
   const [backendStatus,setBackendStatus]=useState("checking");
@@ -348,8 +479,16 @@ function Simulator(){
       try{
         const r=await fetch(BACKEND_URL+"/api/health",{signal:AbortSignal.timeout(5000)});
         const d=await r.json();
-        if(d.ok&&d.keyLoaded){setBackendStatus("ok");setBackendMsg("Connected — ready");}
-        else if(d.ok&&!d.keyLoaded){setBackendStatus("error");setBackendMsg("Backend running but OPENROUTER_KEY not set. Edit .env and restart.");}
+        if(d.ok&&d.totalKeys>0){
+          const parts=[];
+          if(d.openrouter?.count>0) parts.push("OpenRouter: "+d.openrouter.count+" key"+(d.openrouter.count>1?"s":""));
+          if(d.mistral?.count>0)    parts.push("Mistral: "+d.mistral.count+" key"+(d.mistral.count>1?"s":""));
+          setBackendStatus("ok");
+          setBackendMsg("Connected — "+parts.join(" · "));
+        } else if(d.ok&&!d.totalKeys){
+          setBackendStatus("error");
+          setBackendMsg("No API keys configured. Set OPENROUTER_KEYS and/or MISTRAL_KEYS in Vercel environment variables.");
+        }
         else{setBackendStatus("error");setBackendMsg("Backend responded unexpectedly.");}
       }catch(e){
         setBackendStatus("error");
@@ -387,7 +526,7 @@ function Simulator(){
     setError("");setLoading(true);
     try{
       const d=await callBackend("/api/chat",{systemPrompt:sysPrompt,messages:[{role:"user",content:"Begin the "+interviewType+" interview. Greet the candidate and ask your first question."}]});
-      setMessages([{role:"assistant",content:d.reply}]);setPhase("active");setTimeLeft(15*60);
+      setMessages([{role:"assistant",content:d.reply,provider:d.provider}]);setPhase("active");setTimeLeft(15*60);
     }catch(e){setError("Failed to start: "+e.message);}
     setLoading(false);
   };
@@ -395,15 +534,112 @@ function Simulator(){
   const sendMessage=async()=>{
     if(!input.trim()||loading)return;
     const u={role:"user",content:input.trim()};const n=[...messages,u];setMessages(n);setInput("");setLoading(true);setError("");
-    try{const d=await callBackend("/api/chat",{systemPrompt:sysPrompt,messages:n});setMessages([...n,{role:"assistant",content:d.reply}]);}
+    try{const d=await callBackend("/api/chat",{systemPrompt:sysPrompt,messages:n});setMessages([...n,{role:"assistant",content:d.reply,provider:d.provider}]);}
     catch(e){setError("API error: "+e.message);}
     setLoading(false);
   };
 
   const endInterview=async()=>{
     clearInterval(timerRef.current);setPhase("evaluating");
+    const candidateLines=messages.filter(m=>m.role==="user");
+    const interviewerLines=messages.filter(m=>m.role==="assistant");
     const transcript=messages.map(m=>(m.role==="user"?"CANDIDATE":"INTERVIEWER")+": "+m.content).join("\n\n");
-    const evalPrompt="You are a senior HR evaluator at a top-tier Indian law firm. Review this "+interviewType+" interview transcript and provide a structured evaluation.\n\nTRANSCRIPT:\n"+transcript+"\n\nProvide evaluation in EXACTLY this format:\nLEGAL KNOWLEDGE: [score]/10\n[1-2 line comment]\n\nCOMMUNICATION: [score]/10\n[1-2 line comment]\n\nPROBING DEPTH RESPONSE: [score]/10\n[1-2 line comment]\n\nVERDICT: [Hired / Deferred / Rejected]\n\nFINAL ADVICE: [3-4 lines of constructive advice]";
+    const qCount=interviewerLines.length;
+    const aCount=candidateLines.length;
+
+    const evalPrompt=`You are a brutal but fair senior partner at a top-tier Indian law firm (CAM / AZB / Khaitan calibre) evaluating a candidate for a ${interviewType} associate role. You have seen hundreds of interviews. You do NOT give inflated scores. You score based on EVIDENCE from the transcript only.
+
+INTERVIEW TYPE: ${interviewType}
+DIFFICULTY: ${difficulty}
+QUESTIONS ASKED: ${qCount} | ANSWERS GIVEN: ${aCount}
+
+TRANSCRIPT:
+${transcript}
+
+---
+SCORING RUBRIC — read this carefully before scoring:
+
+LEGAL KNOWLEDGE (how accurately and completely did the candidate answer?):
+1-2: Answered almost nothing correctly. Blank or wrong on basics.
+3-4: Got some basics right but missed key statutes, cases, or principles. Significant gaps.
+5-6: Adequate — covered the main points but lacked depth, missed nuance, or cited wrong sections.
+7-8: Strong — accurate, cited correct provisions and cases, showed genuine understanding.
+9-10: Exceptional — precise, nuanced, cited obscure but correct authority, nothing missed.
+
+COMMUNICATION (clarity, structure, and conciseness of answers):
+1-2: Rambling, incoherent, or one-word answers. Very hard to follow.
+3-4: Disorganised. Point made eventually but after significant wandering.
+5-6: Reasonably clear but could be more structured or concise.
+7-8: Clear, structured, confident. Answers have a beginning, middle, end.
+9-10: Crisp, precise, impressive. Sounds like a trained lawyer.
+
+ANALYTICAL DEPTH (did the candidate go beyond surface answers, apply law to facts, spot issues?):
+1-2: Recited definitions only. No application, no issue-spotting.
+3-4: Some application but mostly superficial. Did not probe exceptions or edge cases.
+5-6: Decent analysis but did not connect principles to practical consequences.
+7-8: Good issue-spotting, applied law correctly, identified practical implications.
+9-10: Outstanding — layered analysis, spotted sub-issues, considered counter-arguments.
+
+COMPOSURE UNDER PRESSURE (did the candidate handle follow-up questions, corrections, or difficult questions?):
+1-2: Fell apart under follow-up. Changed answers when challenged without reason.
+3-4: Visibly struggled. Long pauses or gave up on hard questions.
+5-6: Held their ground mostly but was shaken by follow-ups.
+7-8: Handled pressure well. Acknowledged gaps honestly and recovered.
+9-10: Thrived under pressure. Used corrections constructively.
+
+PRACTICAL READINESS (is this person ready to work on real matters from day one?):
+1-2: Not ready. Would need years of foundation building.
+3-4: Needs significant development before being client-facing.
+5-6: Needs mentoring but could handle supervised work.
+7-8: Ready for supervised associate work. Minimal hand-holding needed.
+9-10: Hire immediately. Could run with matters independently.
+
+---
+CRITICAL INSTRUCTIONS:
+1. Scores MUST reflect the actual quality of this specific transcript. Do NOT default to 5-7 for everything.
+2. If the candidate gave short, vague, or incorrect answers — score 3 or 4. Do not be kind.
+3. If the candidate only answered 1-2 questions — every score should reflect that limitation.
+4. Scores across the five dimensions MUST vary — if all five are the same number, you have failed the task.
+5. For each score, quote ONE specific line from the transcript as evidence (prefix with "Evidence: ").
+6. VERDICT must be one of: STRONG HIRE / HIRE / BORDERLINE / REJECT — pick the one that fits, do not hedge.
+
+OUTPUT FORMAT (use exactly these headers, nothing else):
+
+LEGAL KNOWLEDGE: [X]/10
+Evidence: "[exact quote from transcript]"
+Assessment: [2-3 sentences explaining the score]
+
+COMMUNICATION: [X]/10
+Evidence: "[exact quote from transcript]"
+Assessment: [2-3 sentences explaining the score]
+
+ANALYTICAL DEPTH: [X]/10
+Evidence: "[exact quote from transcript]"
+Assessment: [2-3 sentences explaining the score]
+
+COMPOSURE UNDER PRESSURE: [X]/10
+Evidence: "[exact quote from transcript]"
+Assessment: [2-3 sentences explaining the score]
+
+PRACTICAL READINESS: [X]/10
+Evidence: "[exact quote from transcript]"
+Assessment: [2-3 sentences explaining the score]
+
+OVERALL: [X]/10
+[One sentence summary]
+
+VERDICT: [STRONG HIRE / HIRE / BORDERLINE / REJECT]
+[2 sentences explaining verdict]
+
+WHAT TO FIX BEFORE NEXT INTERVIEW:
+1. [Most critical gap — specific, actionable]
+2. [Second gap]
+3. [Third gap]
+
+WHAT WAS DONE WELL:
+1. [Genuine strength — only if earned]
+2. [Second strength — omit if none]`;
+
     try{
       const d=await callBackend("/api/evaluate",{evaluationPrompt:evalPrompt});
       setEvaluation(d.result);
@@ -462,7 +698,7 @@ function Simulator(){
           <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,background:CS.white,border:"1px solid "+CS.border,display:"flex",flexDirection:"column",gap:16}}>
             {messages.map((m,i)=>(
               <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"80%"}}>
-                <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?CS.slate:CS.brass,marginBottom:4,fontFamily:font.body,textAlign:m.role==="user"?"right":"left",letterSpacing:"0.05em"}}>{m.role==="user"?"YOU":"PARTNER INTERVIEWER"}</div>
+                <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?CS.slate:CS.brass,marginBottom:4,fontFamily:font.body,textAlign:m.role==="user"?"right":"left",letterSpacing:"0.05em"}}>{m.role==="user"?"YOU":("PARTNER"+(m.provider?" · "+m.provider:""))}</div>
                 <div style={{padding:"12px 16px",borderRadius:12,fontSize:14,lineHeight:1.5,fontFamily:font.body,background:m.role==="user"?CS.creamD:CS.cream,color:CS.text,border:"1px solid "+CS.border,whiteSpace:"pre-wrap"}}>{m.content}</div>
               </div>
             ))}
@@ -478,13 +714,7 @@ function Simulator(){
 
       {phase==="evaluating"&&<div style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:40,textAlign:"center",fontFamily:font.body}}><p style={{fontSize:16,fontWeight:600,color:CS.text,margin:0}}>Evaluating your performance...</p><p style={{color:CS.slate,fontSize:13,margin:"6px 0 0"}}>The HR evaluator is reviewing your transcript.</p></div>}
 
-      {phase==="result"&&(
-        <div style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:32}}>
-          <h3 style={{fontSize:18,fontFamily:font.display,color:CS.text,margin:"0 0 20px"}}>Interview Evaluation</h3>
-          <div style={{whiteSpace:"pre-wrap",fontFamily:font.mono,fontSize:13,background:CS.cream,padding:20,borderRadius:8,border:"1px solid "+CS.border,lineHeight:1.6,color:CS.navy}}>{evaluation||"Evaluation could not be generated."}</div>
-          <button onClick={()=>{setPhase("setup");setMessages([]);setEvaluation(null);setTimeLeft(15*60);}} style={{marginTop:24,padding:"10px 20px",background:CS.navy,color:CS.cream,border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:font.body}}>Start New Session</button>
-        </div>
-      )}
+      {phase==="result"&&evaluation&&<EvalResult evaluation={evaluation} onReset={()=>{setPhase("setup");setMessages([]);setEvaluation(null);setTimeLeft(15*60);}}/>}
     </div>
   );
 }
@@ -505,9 +735,12 @@ function Community(){
     (async()=>{
       try{
         const res=await fetch("/api/community");
-        const data=await res.json();
+        const text=await res.text();
+        let data;
+        try{ data=JSON.parse(text); }
+        catch(_){ console.error("Community GET: non-JSON response:",text.slice(0,200)); setLoading(false); return; }
         setMembers(data.members||[]);
-      }catch(e){console.error("Failed to load members:",e);}
+      }catch(e){ console.error("Failed to load members:",e.message); }
       setLoading(false);
     })();
   },[]);
@@ -521,7 +754,10 @@ function Community(){
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({name,track,desc,linkedin})
       });
-      const data=await res.json();
+      const text=await res.text();
+      let data;
+      try{ data=JSON.parse(text); }
+      catch(_){ throw new Error("Server error (non-JSON response). Check Vercel KV is connected and VERCEL_KV environment variables are set."); }
       if(!res.ok)throw new Error(data.error||"Failed to register");
       setMembers(prev=>[...prev,data.member]);
       setSuccess(true);
