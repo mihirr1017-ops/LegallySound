@@ -765,7 +765,7 @@ function Community(){
   return (
     <div style={{maxWidth:1000,margin:"40px auto",padding:"0 24px"}}>
       <h2 style={{fontSize:22,fontFamily:font.display,color:CS.text,margin:"0 0 6px"}}>Aspirants Directory</h2>
-      <p style={{color:CS.textL,fontSize:14,fontFamily:font.body,margin:"0 0 32px"}}>Network with fellow students, clerks, and associates preparing for placements.</p>
+      <p style={{color:CS.textL,fontSize:14,fontFamily:font.body,margin:"0 0 32px"}}>Network with fellow students and associates preparing for interviews.</p>
       <div className="community-grid" style={{display:"grid",gridTemplateColumns:"340px 1fr",gap:32,alignItems:"start"}}>
         <div style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:24}}>
           <h3 style={{fontSize:16,fontFamily:font.display,color:CS.text,margin:"0 0 16px"}}>Register Your Profile</h3>
@@ -778,7 +778,7 @@ function Community(){
             <select value={track} onChange={e=>setTrack(e.target.value)} style={{width:"100%",padding:"8px 12px",borderRadius:6,border:"1px solid "+CS.border,fontSize:13,fontFamily:font.body,background:CS.white,color:CS.text,boxSizing:"border-box"}}>
               <option value="Corporate">Corporate / Transactional</option>
               <option value="Litigation">Litigation / Dispute Res</option>
-              <option value="Both">General / Clerks</option>
+              <option value="General">General</option>
             </select>
           </div>
           <div style={{marginBottom:14}}>
