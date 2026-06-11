@@ -256,7 +256,7 @@ function Hero({setActive}){
 function HomeOverview({setActive}){
   const cards=[
     {icon:"📖",title:"Question Bank",desc:"100+ conceptual, statutory, and scenario questions indexed by Tier-1 Indian law firm tags with explicit technical filters.",action:"Start reading",id:"qa"},
-    {icon:"🤖",title:"Partner Simulator",desc:"Simulate an interview with a top law firm partner. Powered by Qwen AI to deliver custom questions, legal counters, and final analytics reports.",action:"Launch simulator",id:"sim"},
+    {icon:"🤖",title:"Partner Simulator",desc:"Simulate an interview with a top law firm partner. Powered by AI to deliver custom questions, legal counters, and final analytics reports.",action:"Launch simulator",id:"sim"},
     {icon:"🏛",title:"Aspirant Directory",desc:"Network with fellow students and associates preparing for corporate tracks and litigation chambers across major Indian cities.",action:"Open Directory",id:"community"},
   ];
   return (
@@ -648,7 +648,7 @@ WHAT WAS DONE WELL:
   return (
     <div style={{maxWidth:800,margin:"40px auto",padding:"0 24px"}}>
       <h2 style={{fontSize:22,fontFamily:font.display,color:CS.text,margin:"0 0 6px"}}>AI Mock Partner Interview</h2>
-      <p style={{color:CS.textL,fontSize:14,fontFamily:font.body,margin:"0 0 20px"}}>One 15-minute session per day. API key stored securely on the backend server.</p>
+      <p style={{color:CS.textL,fontSize:14,fontFamily:font.body,margin:"0 0 20px"}}>One 15-minute session per day.</p>
 
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderRadius:8,marginBottom:24,background:backendStatus==="ok"?"rgba(21,128,61,0.08)":backendStatus==="error"?"rgba(185,28,28,0.08)":"rgba(184,134,11,0.08)",border:"1px solid "+(backendStatus==="ok"?"rgba(21,128,61,0.3)":backendStatus==="error"?"rgba(185,28,28,0.3)":"rgba(184,134,11,0.3)")}}>
         <span style={{fontSize:14,flexShrink:0}}>{backendStatus==="ok"?"✓":backendStatus==="error"?"✗":"⋯"}</span>
@@ -693,7 +693,7 @@ WHAT WAS DONE WELL:
           <div ref={chatRef} style={{flex:1,overflow:"auto",padding:20,background:CS.white,border:"1px solid "+CS.border,display:"flex",flexDirection:"column",gap:16}}>
             {messages.map((m,i)=>(
               <div key={i} style={{alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"80%"}}>
-                <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?CS.slate:CS.brass,marginBottom:4,fontFamily:font.body,textAlign:m.role==="user"?"right":"left",letterSpacing:"0.05em"}}>{m.role==="user"?"YOU":("PARTNER"+(m.provider?" · "+m.provider:""))}</div>
+                <div style={{fontSize:10,fontWeight:700,color:m.role==="user"?CS.slate:CS.brass,marginBottom:4,fontFamily:font.body,textAlign:m.role==="user"?"right":"left",letterSpacing:"0.05em"}}>{m.role==="user"?"YOU":("PARTNER")}</div>
                 <div style={{padding:"12px 16px",borderRadius:12,fontSize:14,lineHeight:1.5,fontFamily:font.body,background:m.role==="user"?CS.creamD:CS.cream,color:CS.text,border:"1px solid "+CS.border,whiteSpace:"pre-wrap"}}>{m.content}</div>
               </div>
             ))}
