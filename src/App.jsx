@@ -484,10 +484,10 @@ function Simulator(){
           if(d.openrouter?.count>0) parts.push("OpenRouter: "+d.openrouter.count+" key"+(d.openrouter.count>1?"s":""));
           if(d.mistral?.count>0)    parts.push("Mistral: "+d.mistral.count+" key"+(d.mistral.count>1?"s":""));
           setBackendStatus("ok");
-          setBackendMsg("Connected — "+parts.join(" · "));
+          setBackendMsg("Connected");
         } else if(d.ok&&!d.totalKeys){
           setBackendStatus("error");
-          setBackendMsg("No API keys configured. Set OPENROUTER_KEYS and/or MISTRAL_KEYS in Vercel environment variables.");
+          setBackendMsg("Not reachable. Contact Admin");
         }
         else{setBackendStatus("error");setBackendMsg("Backend responded unexpectedly.");}
       }catch(e){
@@ -513,7 +513,7 @@ function Simulator(){
 
   const fmtTime=s=>Math.floor(s/60)+":"+(String(s%60).padStart(2,"0"));
 
-  const sysPrompt="You are a senior legal interviewer at a top-tier Indian law firm conducting a "+interviewType+" interview at "+difficulty+" difficulty level. Ask ONE question at a time. Wait for the candidate's answer before asking the next. Start with an introductory question, then probe deeper. After each response, briefly acknowledge in 1 line then ask the next question. Ask follow-ups based on answers to test depth. Keep questions relevant to "+interviewType+" practice in India. Be professional but probing like a real Tier-1 firm partner. Do NOT list multiple questions at once. Vary types: conceptual, statutory, case-law, scenario-based. Gently correct wrong answers and move on.";
+  const sysPrompt="You are a senior legal interviewer at a top-tier Indian law firm conducting a "+interviewType+" interview at "+difficulty+" difficulty level. Introduce yourself and ask for their introduction. Ask ONE question at a time. Wait for the candidate's answer before asking the next. Start with an introductory question, then probe deeper. After each response, briefly acknowledge in 1 line then ask the next question. Ask follow-ups based on answers to test depth. Keep questions relevant to "+interviewType+" practice in India. Be professional but probing like a real Tier-1 firm partner. Do NOT list multiple questions at once. Vary types: conceptual, statutory, case-law, scenario-based. Gently correct wrong answers and move on.";
 
   const callBackend=async(endpoint,body)=>{
     const r=await fetch(BACKEND_URL+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
@@ -606,23 +606,18 @@ CRITICAL INSTRUCTIONS:
 OUTPUT FORMAT (use exactly these headers, nothing else):
 
 LEGAL KNOWLEDGE: [X]/10
-Evidence: "[exact quote from transcript]"
 Assessment: [2-3 sentences explaining the score]
 
 COMMUNICATION: [X]/10
-Evidence: "[exact quote from transcript]"
 Assessment: [2-3 sentences explaining the score]
 
 ANALYTICAL DEPTH: [X]/10
-Evidence: "[exact quote from transcript]"
 Assessment: [2-3 sentences explaining the score]
 
 COMPOSURE UNDER PRESSURE: [X]/10
-Evidence: "[exact quote from transcript]"
 Assessment: [2-3 sentences explaining the score]
 
 PRACTICAL READINESS: [X]/10
-Evidence: "[exact quote from transcript]"
 Assessment: [2-3 sentences explaining the score]
 
 OVERALL: [X]/10
