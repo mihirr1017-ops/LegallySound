@@ -830,6 +830,8 @@ function Community(){
 export default function App(){
   const [active,setActive]=useState("home");
 
+  useEffect(()=>{ if(active==="qa") window.scrollTo({top:0,behavior:"smooth"}); },[active]);
+
   return (
     <div style={{minHeight:"100vh",background:CS.cream}}>
       <style>{`
