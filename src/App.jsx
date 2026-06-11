@@ -803,7 +803,7 @@ function Community(){
             <div style={{background:CS.cream,border:"1px solid "+CS.border,borderRadius:10,padding:24,textAlign:"center"}}><p style={{color:CS.textL,fontSize:13,fontFamily:font.body,margin:0}}>No one has registered yet. Be the first!</p></div>
           ):(
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
-              {members.slice().reverse().map((m,i)=>(
+              {members.slice().sort((a,b)=>{if(a.track==="Founder"&&b.track!=="Founder")return -1;if(b.track==="Founder"&&a.track!=="Founder")return 1;return a.name.localeCompare(b.name);}).map((m,i)=>(
                 <div key={i} style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:20}}>
                   <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
