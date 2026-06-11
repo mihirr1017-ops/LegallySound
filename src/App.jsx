@@ -222,12 +222,12 @@ function CompanyTag({name}){
 
 function Nav({active,setActive}){
   return (
-    <nav style={{position:"sticky",top:0,zIndex:100,background:CS.navy,borderBottom:"1px solid "+CS.navyM,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 24px",height:56,fontFamily:font.body}}>
-      <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer"}} onClick={()=>setActive("home")}>
+    <nav style={{position:"sticky",top:0,zIndex:100,background:CS.navy,borderBottom:"1px solid "+CS.navyM,display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 16px",minHeight:56,flexWrap:"wrap",fontFamily:font.body}}>
+      <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",order:1,padding:"8px 0"}} onClick={()=>setActive("home")}>
         <span style={{color:CS.brass,fontSize:22,fontFamily:font.display,fontWeight:700}}>§</span>
         <span style={{color:CS.cream,fontSize:15,fontWeight:700,letterSpacing:"0.04em"}}>LegallySo<span style={{color:CS.brassL}}>und</span></span>
       </div>
-      <div style={{display:"flex",gap:4,alignItems:"center"}}>
+      <div className="nav-links" style={{display:"flex",gap:4,alignItems:"center",order:2}}>
         {[{id:"home",label:"Home"},{id:"qa",label:"Questions"},{id:"sim",label:"Live Interview Prep"},{id:"community",label:"Community"}].map(it=>(
           <button key={it.id} onClick={()=>setActive(it.id)} style={{background:active===it.id?"rgba(184,134,11,0.15)":"transparent",color:active===it.id?CS.brassL:CS.textLL,border:"none",padding:"8px 12px",borderRadius:8,cursor:"pointer",fontSize:12,fontWeight:600,fontFamily:font.body}}>{it.label}</button>
         ))}
@@ -362,7 +362,7 @@ function ScoreCard({dim,score,evidence,assessment}){
         <span style={{fontSize:isOverall?13:12,fontWeight:700,color:CS.textL,fontFamily:font.body,letterSpacing:"0.04em"}}>{dim}</span>
         <div style={{display:"flex",alignItems:"center",gap:8}}>
           {score!==null&&(
-            <div style={{display:"flex",gap:3}}>
+            <div className="score-dots" style={{display:"flex",gap:3}}>
               {[1,2,3,4,5,6,7,8,9,10].map(n=>(
                 <div key={n} style={{width:isOverall?10:8,height:isOverall?10:8,borderRadius:2,background:n<=score?col:"rgba(0,0,0,0.08)"}}/>
               ))}
@@ -420,7 +420,7 @@ function EvalResult({evaluation,onReset}){
       )}
 
       {/* Fix + Well */}
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+      <div className="eval-fix-well" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
         {parsed.fixes.length>0&&(
           <div style={{background:"rgba(185,28,28,0.04)",border:"1px solid rgba(185,28,28,0.15)",borderRadius:10,padding:16}}>
             <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.red,fontFamily:font.body,margin:"0 0 10px"}}>WHAT TO FIX</p>
@@ -680,7 +680,7 @@ WHAT WAS DONE WELL:
 
       {phase==="active"&&(
         <div style={{display:"flex",flexDirection:"column",height:"min(70vh,600px)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",background:CS.cream,borderRadius:"10px 10px 0 0",border:"1px solid "+CS.border,borderBottom:"none"}}>
+          <div className="sim-chat-header" style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"12px 16px",gap:8,background:CS.cream,borderRadius:"10px 10px 0 0",border:"1px solid "+CS.border,borderBottom:"none"}}>
             <div style={{display:"flex",alignItems:"center",gap:12}}>
               <span style={{fontSize:12,fontWeight:600,fontFamily:font.body,color:CS.textL}}>{interviewType}</span>
               <span style={{fontSize:11,padding:"2px 8px",borderRadius:8,fontWeight:600,fontFamily:font.body,background:difficulty==="Advanced"?CS.oxS:difficulty==="Intermediate"?CS.brassS:"rgba(21,128,61,0.08)",color:difficulty==="Advanced"?CS.ox:difficulty==="Intermediate"?CS.brass:CS.green}}>{difficulty}</span>
@@ -843,6 +843,15 @@ export default function App(){
         ::placeholder{color:#94a3b8;}
         @media(max-width:700px){.community-grid{grid-template-columns:1fr!important;}}
         @media(max-width:500px){.filter-bar{flex-direction:column;}.filter-bar select,.filter-bar input{width:100%!important;}}
+        @media(max-width:600px){
+          .nav-links{width:100%;order:2;overflow-x:auto;padding:6px 0 8px;border-top:1px solid rgba(51,65,85,0.4);scrollbar-width:none;white-space:nowrap;}
+          .nav-links::-webkit-scrollbar{display:none;}
+          .nav-links button{flex-shrink:0;}
+          .eval-fix-well{grid-template-columns:1fr!important;}
+          .score-dots{display:none!important;}
+          .sim-chat-header{flex-wrap:wrap;gap:8px!important;}
+          .sim-chat-header>div{flex-shrink:1;min-width:0;}
+        }
       `}</style>
       <Nav active={active} setActive={setActive}/>
       {active==="home"&&<><Hero setActive={setActive}/><HomeOverview setActive={setActive}/></>}
