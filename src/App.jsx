@@ -861,7 +861,7 @@ export default function App(){
       <footer style={{background:CS.navy,padding:"32px 24px",textAlign:"center",marginTop:48,borderTop:"1px solid "+CS.navyM}}>
         <span style={{color:CS.brass,fontSize:18,fontFamily:font.display,fontWeight:700}}>§</span>
         <p style={{color:CS.textLL,fontSize:12,fontFamily:font.body,margin:"8px 0 4px"}}>LegallySound — Interview preparation for Indian law firm aspirants</p>
-        <p style={{color:"rgba(148,163,184,0.5)",fontSize:11,fontFamily:font.body,margin:0}}>Questions sourced from Legally India, Glassdoor, Lawctopus and practitioner accounts. Verify all statutory references before your interview.</p>
+        <p style={{color:"rgba(148,163,184,0.5)",fontSize:11,fontFamily:font.body,margin:0}}>Questions sourced from interview experiences. Verify all statutory references before your interview.</p>
         <p style={{color:"rgba(148,163,184,0.5)",fontSize:11,fontFamily:font.body,margin:0}}>Suggestions? Write to mihir.r1017@gmail.com</p>
       </footer>
     </div>
