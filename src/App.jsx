@@ -510,7 +510,7 @@ function Simulator(){
     const headers={"Content-Type":"application/json"};
     const token=import.meta.env.VITE_APP_TOKEN;
     if(token) headers["X-App-Token"]=token;
-    const r=await fetch(BACKEND_URL+endpoint,{method:"POST",headers,body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+    const r=await fetch(BACKEND_URL+endpoint,{method:"POST",headers,body:JSON.stringify(body),signal:AbortSignal.timeout(55000)});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||"Server error "+r.status);}
     return r.json();
   };
