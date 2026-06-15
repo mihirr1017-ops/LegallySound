@@ -513,10 +513,11 @@ function Simulator(){
 
   const fmtTime=s=>Math.floor(s/60)+":"+(String(s%60).padStart(2,"0"));
 
-  const sysPrompt="You are a senior legal interviewer at a top-tier Indian law firm conducting a "+interviewType+" interview at "+difficulty+" difficulty level. Introduce yourself, don't mention anyone's name and ask for their introduction.  Ask ONE question at a time. Wait for the candidate's answer before asking the next. Start with an introductory question, then probe deeper. After each response, briefly acknowledge in 1 line then ask the next question. Ask follow-ups based on answers to test depth. Keep questions relevant to "+interviewType+" practice in India. Be professional but probing like a real Tier-1 firm partner. Do NOT list multiple questions at once. Vary types: conceptual, statutory, case-law, scenario-based. Gently correct wrong answers and move on.";
-
   const callBackend=async(endpoint,body)=>{
-    const r=await fetch(BACKEND_URL+endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
+    const headers={"Content-Type":"application/json"};
+    const token=import.meta.env.VITE_APP_TOKEN;
+    if(token) headers["X-App-Token"]=token;
+    const r=await fetch(BACKEND_URL+endpoint,{method:"POST",headers,body:JSON.stringify(body),signal:AbortSignal.timeout(30000)});
     if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||"Server error "+r.status);}
     return r.json();
   };
@@ -525,7 +526,7 @@ function Simulator(){
     if(backendStatus!=="ok"){setError("Backend not ready. "+backendMsg);return;}
     setError("");setLoading(true);
     try{
-      const d=await callBackend("/api/chat",{systemPrompt:sysPrompt,messages:[{role:"user",content:"Begin the "+interviewType+" interview. Greet the candidate and ask your first question."}]});
+      const d=await callBackend("/api/chat",{interviewType,difficulty,messages:[{role:"user",content:"Begin the "+interviewType+" interview. Greet the candidate and ask your first question."}]});
       setMessages([{role:"assistant",content:d.reply,provider:d.provider}]);setPhase("active");setTimeLeft(15*60);
     }catch(e){setError("Failed to start: "+e.message);}
     setLoading(false);
@@ -534,109 +535,15 @@ function Simulator(){
   const sendMessage=async()=>{
     if(!input.trim()||loading)return;
     const u={role:"user",content:input.trim()};const n=[...messages,u];setMessages(n);setInput("");setLoading(true);setError("");
-    try{const d=await callBackend("/api/chat",{systemPrompt:sysPrompt,messages:n});setMessages([...n,{role:"assistant",content:d.reply,provider:d.provider}]);}
+    try{const d=await callBackend("/api/chat",{interviewType,difficulty,messages:n});setMessages([...n,{role:"assistant",content:d.reply,provider:d.provider}]);}
     catch(e){setError("API error: "+e.message);}
     setLoading(false);
   };
 
   const endInterview=async()=>{
     clearInterval(timerRef.current);setPhase("evaluating");
-    const candidateLines=messages.filter(m=>m.role==="user");
-    const interviewerLines=messages.filter(m=>m.role==="assistant");
-    const transcript=messages.map(m=>(m.role==="user"?"CANDIDATE":"INTERVIEWER")+": "+m.content).join("\n\n");
-    const qCount=interviewerLines.length;
-    const aCount=candidateLines.length;
-
-    const evalPrompt=`You are a brutal but fair senior partner at a top-tier Indian law firm (CAM / AZB / Khaitan calibre) evaluating a candidate for a ${interviewType} associate role. You have seen hundreds of interviews. You do NOT give inflated scores. You score based on EVIDENCE from the transcript only.
-
-INTERVIEW TYPE: ${interviewType}
-DIFFICULTY: ${difficulty}
-QUESTIONS ASKED: ${qCount} | ANSWERS GIVEN: ${aCount}
-
-TRANSCRIPT:
-${transcript}
-
----
-SCORING RUBRIC — read this carefully before scoring:
-
-LEGAL KNOWLEDGE (how accurately and completely did the candidate answer?):
-1-2: Answered almost nothing correctly. Blank or wrong on basics.
-3-4: Got some basics right but missed key statutes, cases, or principles. Significant gaps.
-5-6: Adequate — covered the main points but lacked depth, missed nuance, or cited wrong sections.
-7-8: Strong — accurate, cited correct provisions and cases, showed genuine understanding.
-9-10: Exceptional — precise, nuanced, cited obscure but correct authority, nothing missed.
-
-COMMUNICATION (clarity, structure, and conciseness of answers):
-1-2: Rambling, incoherent, or one-word answers. Very hard to follow.
-3-4: Disorganised. Point made eventually but after significant wandering.
-5-6: Reasonably clear but could be more structured or concise.
-7-8: Clear, structured, confident. Answers have a beginning, middle, end.
-9-10: Crisp, precise, impressive. Sounds like a trained lawyer.
-
-ANALYTICAL DEPTH (did the candidate go beyond surface answers, apply law to facts, spot issues?):
-1-2: Recited definitions only. No application, no issue-spotting.
-3-4: Some application but mostly superficial. Did not probe exceptions or edge cases.
-5-6: Decent analysis but did not connect principles to practical consequences.
-7-8: Good issue-spotting, applied law correctly, identified practical implications.
-9-10: Outstanding — layered analysis, spotted sub-issues, considered counter-arguments.
-
-COMPOSURE UNDER PRESSURE (did the candidate handle follow-up questions, corrections, or difficult questions?):
-1-2: Fell apart under follow-up. Changed answers when challenged without reason.
-3-4: Visibly struggled. Long pauses or gave up on hard questions.
-5-6: Held their ground mostly but was shaken by follow-ups.
-7-8: Handled pressure well. Acknowledged gaps honestly and recovered.
-9-10: Thrived under pressure. Used corrections constructively.
-
-PRACTICAL READINESS (is this person ready to work on real matters from day one?):
-1-2: Not ready. Would need years of foundation building.
-3-4: Needs significant development before being client-facing.
-5-6: Needs mentoring but could handle supervised work.
-7-8: Ready for supervised associate work. Minimal hand-holding needed.
-9-10: Hire immediately. Could run with matters independently.
-
----
-CRITICAL INSTRUCTIONS:
-1. Scores MUST reflect the actual quality of this specific transcript. Do NOT default to 5-7 for everything.
-2. If the candidate gave short, vague, or incorrect answers — score 3 or 4. Do not be kind.
-3. If the candidate only answered 1-2 questions — every score should reflect that limitation.
-4. Scores across the five dimensions MUST vary — if all five are the same number, you have failed the task.
-5. For each score, quote ONE specific line from the transcript as evidence (prefix with "Evidence: ").
-6. VERDICT must be one of: STRONG HIRE / HIRE / BORDERLINE / REJECT — pick the one that fits, do not hedge.
-
-OUTPUT FORMAT (use exactly these headers, nothing else):
-
-LEGAL KNOWLEDGE: [X]/10
-Assessment: [2-3 sentences explaining the score]
-
-COMMUNICATION: [X]/10
-Assessment: [2-3 sentences explaining the score]
-
-ANALYTICAL DEPTH: [X]/10
-Assessment: [2-3 sentences explaining the score]
-
-COMPOSURE UNDER PRESSURE: [X]/10
-Assessment: [2-3 sentences explaining the score]
-
-PRACTICAL READINESS: [X]/10
-Assessment: [2-3 sentences explaining the score]
-
-OVERALL: [X]/10
-[One sentence summary]
-
-VERDICT: [STRONG HIRE / HIRE / BORDERLINE / REJECT]
-[2 sentences explaining verdict]
-
-WHAT TO FIX BEFORE NEXT INTERVIEW:
-1. [Most critical gap — specific, actionable]
-2. [Second gap]
-3. [Third gap]
-
-WHAT WAS DONE WELL:
-1. [Genuine strength — only if earned]
-2. [Second strength — omit if none]`;
-
     try{
-      const d=await callBackend("/api/evaluate",{evaluationPrompt:evalPrompt});
+      const d=await callBackend("/api/evaluate",{messages,interviewType,difficulty});
       setEvaluation(d.result);
       try{localStorage.setItem("sim-last-used",new Date().toISOString().split("T")[0]);setCanUse(false);}catch(e){}
     }catch(e){setEvaluation("Evaluation could not be generated: "+e.message);}

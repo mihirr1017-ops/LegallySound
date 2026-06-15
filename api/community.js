@@ -94,19 +94,18 @@ export default async function handler(req, res) {
     }
 
     const { name, track, desc, linkedin } = body;
+    const VALID_TRACKS = ["Corporate", "Litigation", "General", "Founder"];
 
-    if (!name?.trim()) {
-      res.status(400).json({ error: "Name is required" });
-      return;
-    }
-    if (!desc?.trim()) {
-      res.status(400).json({ error: "Description is required" });
-      return;
-    }
+    if (!name?.trim())                      { res.status(400).json({ error: "Name is required" }); return; }
+    if (name.trim().length > 80)            { res.status(400).json({ error: "Name must be 80 characters or fewer" }); return; }
+    if (!desc?.trim())                      { res.status(400).json({ error: "Description is required" }); return; }
+    if (desc.trim().length > 400)           { res.status(400).json({ error: "Description must be 400 characters or fewer" }); return; }
+    if ((linkedin || "").trim().length > 200) { res.status(400).json({ error: "LinkedIn URL must be 200 characters or fewer" }); return; }
+    const resolvedTrack = VALID_TRACKS.includes(track) ? track : "Corporate";
 
     const newMember = {
       name: name.trim(),
-      track: track || "Corporate",
+      track: resolvedTrack,
       desc: desc.trim(),
       linkedin: (linkedin || "").trim(),
       joined: new Date().toISOString().split("T")[0],
