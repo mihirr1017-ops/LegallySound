@@ -479,17 +479,10 @@ function Simulator(){
       try{
         const r=await fetch(BACKEND_URL+"/api/health",{signal:AbortSignal.timeout(5000)});
         const d=await r.json();
-        if(d.ok&&d.totalKeys>0){
-          const parts=[];
-          if(d.openrouter?.count>0) parts.push("OpenRouter: "+d.openrouter.count+" key"+(d.openrouter.count>1?"s":""));
-          if(d.mistral?.count>0)    parts.push("Mistral: "+d.mistral.count+" key"+(d.mistral.count>1?"s":""));
+        if(d.ok){
           setBackendStatus("ok");
           setBackendMsg("Connected");
-        } else if(d.ok&&!d.totalKeys){
-          setBackendStatus("error");
-          setBackendMsg("Not reachable. Contact Admin");
-        }
-        else{setBackendStatus("error");setBackendMsg("Backend responded unexpectedly.");}
+        }else{setBackendStatus("error");setBackendMsg("Backend responded unexpectedly.");}
       }catch(e){
         setBackendStatus("error");
         setBackendMsg("Cannot reach backend");
