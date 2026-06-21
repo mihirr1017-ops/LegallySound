@@ -353,18 +353,35 @@ function QuestionBank(){
 function parseEvaluation(text){
   if(!text) return null;
   const dims=["LEGAL KNOWLEDGE","COMMUNICATION","ANALYTICAL DEPTH","COMPOSURE UNDER PRESSURE","PRACTICAL READINESS","OVERALL"];
+
+  // Extract the text block that belongs exclusively to one dimension,
+  // stopping before the next dim header, VERDICT:, or WHAT TO FIX.
+  function getSection(dim){
+    const i=text.search(new RegExp(dim+":","i"));
+    if(i===-1) return "";
+    const rest=text.slice(i+dim.length);
+    const stops=[...dims.filter(d=>d!==dim).map(d=>d+":"), "VERDICT:", "WHAT TO FIX"];
+    let end=rest.length;
+    for(const s of stops){
+      const j=rest.search(new RegExp(s,"i"));
+      if(j!==-1&&j<end) end=j;
+    }
+    return rest.slice(0,end);
+  }
+
   const scores=dims.map(dim=>{
-    const re=new RegExp(dim+":\\s*(\\d+)/10","i");
-    const m=text.match(re);
-    const score=m?parseInt(m[1]):null;
-    // extract evidence line
-    const evRe=new RegExp(dim+":[\\s\\S]*?Evidence:\\s*\"([^\"]+)\"","i");
-    const evM=text.match(evRe);
-    // extract assessment
-    const asRe=new RegExp(dim+":[\\s\\S]*?Assessment:\\s*([^\\n]+(?:\\n(?![A-Z]).*)*?)(?=\\n[A-Z]|$)","i");
-    const asM=text.match(asRe);
-    return {dim,score,evidence:evM?evM[1]:null,assessment:asM?asM[1].trim():null};
+    const sec=getSection(dim);
+    const scoreM=sec.match(/(\d+)\/10/);
+    const score=scoreM?parseInt(scoreM[1]):null;
+    // Evidence: with or without surrounding quotes
+    const evM=sec.match(/Evidence:\s*"?([^"\n]{4,})"?/i);
+    const evidence=evM?evM[1].replace(/"+$/,"").trim():null;
+    // Assessment: first full line after the label
+    const asM=sec.match(/Assessment:\s*([^\n]+)/i);
+    const assessment=asM?asM[1].trim():null;
+    return {dim,score,evidence,assessment};
   });
+
   const verdictM=text.match(/VERDICT:\s*(STRONG HIRE|HIRE|BORDERLINE|REJECT)/i);
   const verdict=verdictM?verdictM[1].toUpperCase():null;
   const verdictNoteM=text.match(/VERDICT:[^\n]*\n([^\n]+(?:\n[^\n]+)?)/i);
