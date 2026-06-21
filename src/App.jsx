@@ -354,17 +354,28 @@ function parseEvaluation(text){
   if(!text) return null;
   const dims=["LEGAL KNOWLEDGE","COMMUNICATION","ANALYTICAL DEPTH","COMPOSURE UNDER PRESSURE","PRACTICAL READINESS","OVERALL"];
 
-  // Extract the text block that belongs exclusively to one dimension,
-  // stopping before the next dim header, VERDICT:, or WHAT TO FIX.
+  // Extract the text block belonging exclusively to one dimension.
+  // Stops are anchored to line-starts so a word like "communication:"
+  // inside an assessment sentence doesn't prematurely end the section.
   function getSection(dim){
-    const i=text.search(new RegExp(dim+":","i"));
-    if(i===-1) return "";
-    const rest=text.slice(i+dim.length);
+    // Match dim name only at line-start (or document start)
+    const startRe=new RegExp("(?:^|\\n)"+dim+":","i");
+    const startM=text.match(startRe);
+    if(!startM) return "";
+    // Skip the leading \n so `from` points to the dim name itself
+    const from=startM.index+(startM[0][0]==="\n"?1:0);
+    const rest=text.slice(from+dim.length);
+
     const stops=[...dims.filter(d=>d!==dim).map(d=>d+":"), "VERDICT:", "WHAT TO FIX"];
     let end=rest.length;
     for(const s of stops){
-      const j=rest.search(new RegExp(s,"i"));
-      if(j!==-1&&j<end) end=j;
+      // Anchor each stop to line-start too
+      const stopRe=new RegExp("(?:^|\\n)"+s,"i");
+      const stopM=rest.match(stopRe);
+      if(stopM){
+        const pos=stopM.index+(stopM[0][0]==="\n"?1:0);
+        if(pos<end) end=pos;
+      }
     }
     return rest.slice(0,end);
   }
@@ -376,9 +387,10 @@ function parseEvaluation(text){
     // Evidence: with or without surrounding quotes
     const evM=sec.match(/Evidence:\s*"?([^"\n]{4,})"?/i);
     const evidence=evM?evM[1].replace(/"+$/,"").trim():null;
-    // Assessment: first full line after the label
-    const asM=sec.match(/Assessment:\s*([^\n]+)/i);
-    const assessment=asM?asM[1].trim():null;
+    // Assessment: capture everything after the label until Evidence: or end of section.
+    // \s* handles text on the same line OR the next line (model sometimes puts it there).
+    const asM=sec.match(/Assessment:\s*([\s\S]*?)(?=\n\s*Evidence:|\s*$)/i);
+    const assessment=asM?asM[1].replace(/\n/g," ").trim():null;
     return {dim,score,evidence,assessment};
   });
 
