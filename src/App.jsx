@@ -594,7 +594,7 @@ function Simulator(){
       <div style={{display:"flex",alignItems:"center",gap:10,padding:"10px 16px",borderRadius:8,marginBottom:24,background:backendStatus==="ok"?"rgba(21,128,61,0.08)":backendStatus==="error"?"rgba(185,28,28,0.08)":"rgba(184,134,11,0.08)",border:"1px solid "+(backendStatus==="ok"?"rgba(21,128,61,0.3)":backendStatus==="error"?"rgba(185,28,28,0.3)":"rgba(184,134,11,0.3)")}}>
         <span style={{fontSize:14,flexShrink:0}}>{backendStatus==="ok"?"✓":backendStatus==="error"?"✗":"⋯"}</span>
         <div>
-          <p style={{margin:0,fontSize:13,fontWeight:600,color:CS.text,fontFamily:font.body}}>{backendStatus==="ok"?"Backend Connected":backendStatus==="error"?"Backend Unavailable":"Checking backend..."}</p>
+          <p style={{margin:0,fontSize:13,fontWeight:600,color:CS.text,fontFamily:font.body}}>{backendStatus==="ok"?"Online":backendStatus==="error"?"ServerUnavailable":"Checking backend..."}</p>
           {backendMsg&&<p style={{margin:"2px 0 0",fontSize:12,color:CS.textL,fontFamily:font.body}}>{backendMsg}</p>}
         </div>
       </div>
