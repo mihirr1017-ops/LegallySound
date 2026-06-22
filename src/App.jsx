@@ -350,159 +350,42 @@ function QuestionBank(){
   );
 }
 
-function parseEvaluation(text){
-  if(!text) return null;
-  const dims=["LEGAL KNOWLEDGE","COMMUNICATION","ANALYTICAL DEPTH","COMPOSURE UNDER PRESSURE","PRACTICAL READINESS","OVERALL"];
-
-  // Extract the text block belonging exclusively to one dimension.
-  // Stops are anchored to line-starts so a word like "communication:"
-  // inside an assessment sentence doesn't prematurely end the section.
-  function getSection(dim){
-    // Match dim name only at line-start (or document start)
-    const startRe=new RegExp("(?:^|\\n)"+dim+":","i");
-    const startM=text.match(startRe);
-    if(!startM) return "";
-    // Skip the leading \n so `from` points to the dim name itself
-    const from=startM.index+(startM[0][0]==="\n"?1:0);
-    const rest=text.slice(from+dim.length);
-
-    const stops=[...dims.filter(d=>d!==dim).map(d=>d+":"), "VERDICT:", "WHAT TO FIX"];
-    let end=rest.length;
-    for(const s of stops){
-      // Anchor each stop to line-start too
-      const stopRe=new RegExp("(?:^|\\n)"+s,"i");
-      const stopM=rest.match(stopRe);
-      if(stopM){
-        const pos=stopM.index+(stopM[0][0]==="\n"?1:0);
-        if(pos<end) end=pos;
-      }
-    }
-    return rest.slice(0,end);
-  }
-
-  const scores=dims.map(dim=>{
-    const sec=getSection(dim);
-    const scoreM=sec.match(/(\d+)\/10/);
-    const score=scoreM?parseInt(scoreM[1]):null;
-    // Evidence: with or without surrounding quotes
-    const evM=sec.match(/Evidence:\s*"?([^"\n]{4,})"?/i);
-    const evidence=evM?evM[1].replace(/"+$/,"").trim():null;
-    // Assessment: capture everything after the label until Evidence: or end of section.
-    // \s* handles text on the same line OR the next line (model sometimes puts it there).
-    const asM=sec.match(/Assessment:\s*([\s\S]*?)(?=\n\s*Evidence:|\s*$)/i);
-    const assessment=asM?asM[1].replace(/\n/g," ").trim():null;
-    return {dim,score,evidence,assessment};
-  });
-
+function parseEvalResult(text){
+  if(!text) return {};
   const verdictM=text.match(/VERDICT:\s*(STRONG HIRE|HIRE|BORDERLINE|REJECT)/i);
   const verdict=verdictM?verdictM[1].toUpperCase():null;
-  const verdictNoteM=text.match(/VERDICT:[^\n]*\n([^\n]+(?:\n[^\n]+)?)/i);
-  const verdictNote=verdictNoteM?verdictNoteM[1].trim():null;
-  const fixM=text.match(/WHAT TO FIX BEFORE NEXT INTERVIEW:([\s\S]*?)(?=WHAT WAS DONE WELL:|$)/i);
-  const fixes=fixM?fixM[1].trim().split("\n").map(l=>l.replace(/^\d+\.\s*/,"").trim()).filter(Boolean):[];
-  const wellM=text.match(/WHAT WAS DONE WELL:([\s\S]*?)$/i);
-  const wells=wellM?wellM[1].trim().split("\n").map(l=>l.replace(/^\d+\.\s*/,"").trim()).filter(Boolean):[];
-  return {scores,verdict,verdictNote,fixes,wells};
-}
-
-function ScoreCard({dim,score,evidence,assessment}){
-  const isOverall=dim==="OVERALL";
-  const col=score===null?"#94a3b8":score>=8?CS.green:score>=6?CS.brass:score>=4?"#d97706":CS.red;
-  const bg=score===null?"rgba(148,163,184,0.08)":score>=8?"rgba(21,128,61,0.06)":score>=6?CS.brassS:score>=4?"rgba(217,119,6,0.08)":"rgba(185,28,28,0.06)";
-  return (
-    <div style={{background:CS.white,border:"1px solid "+(score===null?CS.border:col+"44"),borderRadius:10,padding:isOverall?"20px 24px":16,marginBottom:isOverall?0:10}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:evidence||assessment?10:0}}>
-        <span style={{fontSize:isOverall?13:12,fontWeight:700,color:CS.textL,fontFamily:font.body,letterSpacing:"0.04em"}}>{dim}</span>
-        <div style={{display:"flex",alignItems:"center",gap:8}}>
-          {score!==null&&(
-            <div className="score-dots" style={{display:"flex",gap:3}}>
-              {[1,2,3,4,5,6,7,8,9,10].map(n=>(
-                <div key={n} style={{width:isOverall?10:8,height:isOverall?10:8,borderRadius:2,background:n<=score?col:"rgba(0,0,0,0.08)"}}/>
-              ))}
-            </div>
-          )}
-          <span style={{fontSize:isOverall?22:18,fontWeight:800,fontFamily:font.display,color:col,minWidth:40,textAlign:"right"}}>{score!==null?score+"/10":"–"}</span>
-        </div>
-      </div>
-      {evidence&&<p style={{margin:"0 0 6px",fontSize:11.5,color:CS.slate,fontFamily:font.body,fontStyle:"italic",lineHeight:1.5,background:"rgba(0,0,0,0.03)",padding:"6px 8px",borderRadius:4,borderLeft:"2px solid "+col}}>"{evidence}"</p>}
-      {assessment&&<p style={{margin:0,fontSize:12.5,color:CS.textL,fontFamily:font.body,lineHeight:1.6}}>{assessment}</p>}
-    </div>
-  );
+  const overallM=text.match(/OVERALL:\s*(\d+)\/10/i);
+  const overall=overallM?parseInt(overallM[1]):null;
+  return {verdict,overall};
 }
 
 function EvalResult({evaluation,onReset}){
-  const parsed=parseEvaluation(evaluation);
-  const verdictColor=!parsed?.verdict?"#94a3b8":parsed.verdict==="STRONG HIRE"?CS.green:parsed.verdict==="HIRE"?"#16a34a":parsed.verdict==="BORDERLINE"?CS.brass:CS.red;
-  const verdictBg=!parsed?.verdict?"rgba(148,163,184,0.08)":parsed.verdict==="STRONG HIRE"?"rgba(21,128,61,0.1)":parsed.verdict==="HIRE"?"rgba(22,163,74,0.08)":parsed.verdict==="BORDERLINE"?CS.brassS:"rgba(185,28,28,0.08)";
-
-  if(!parsed){
-    return (
-      <div style={{background:CS.white,border:"1px solid "+CS.border,borderRadius:12,padding:28}}>
-        <h3 style={{fontSize:18,fontFamily:font.display,color:CS.text,margin:"0 0 16px"}}>Interview Evaluation</h3>
-        <div style={{whiteSpace:"pre-wrap",fontFamily:font.mono,fontSize:12.5,background:CS.cream,padding:16,borderRadius:8,lineHeight:1.7,color:CS.navy}}>{evaluation}</div>
-        <button onClick={onReset} style={{marginTop:20,padding:"10px 20px",background:CS.navy,color:CS.cream,border:"none",borderRadius:6,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:font.body}}>Start New Session</button>
-      </div>
-    );
-  }
-
-  const mainScores=parsed.scores.filter(s=>s.dim!=="OVERALL");
-  const overall=parsed.scores.find(s=>s.dim==="OVERALL");
+  const {verdict,overall}=parseEvalResult(evaluation);
+  const verdictColor=!verdict?"#94a3b8":verdict==="STRONG HIRE"?CS.green:verdict==="HIRE"?"#16a34a":verdict==="BORDERLINE"?CS.brass:CS.red;
+  const verdictBg=!verdict?"rgba(148,163,184,0.08)":verdict==="STRONG HIRE"?"rgba(21,128,61,0.1)":verdict==="HIRE"?"rgba(22,163,74,0.08)":verdict==="BORDERLINE"?CS.brassS:"rgba(185,28,28,0.08)";
+  const scoreCol=overall===null?"#94a3b8":overall>=8?CS.green:overall>=6?CS.brass:overall>=4?"#d97706":CS.red;
 
   return (
-    <div style={{display:"flex",flexDirection:"column",gap:16}}>
+    <div style={{display:"flex",flexDirection:"column",gap:14}}>
 
-      {/* Verdict banner */}
-      <div style={{background:verdictBg,border:"1px solid "+verdictColor+"44",borderRadius:12,padding:"20px 24px",textAlign:"center"}}>
-        <div style={{fontSize:11,fontWeight:700,letterSpacing:"0.12em",color:verdictColor,fontFamily:font.body,marginBottom:6}}>PARTNER VERDICT</div>
-        <div style={{fontSize:26,fontWeight:800,color:verdictColor,fontFamily:font.display,marginBottom:parsed.verdictNote?8:0}}>{parsed.verdict||"–"}</div>
-        {parsed.verdictNote&&<p style={{margin:0,fontSize:13,color:CS.textL,fontFamily:font.body,lineHeight:1.5}}>{parsed.verdictNote}</p>}
-      </div>
-
-      {/* Score cards */}
-      <div>
-        <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.textLL,fontFamily:font.body,margin:"0 0 10px"}}>DIMENSION BREAKDOWN</p>
-        {mainScores.map(s=><ScoreCard key={s.dim} {...s}/>)}
-      </div>
-
-      {/* Overall */}
-      {overall&&(
-        <div>
-          <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.textLL,fontFamily:font.body,margin:"0 0 10px"}}>OVERALL</p>
-          <ScoreCard {...overall}/>
+      {/* Verdict + Overall row */}
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:12,alignItems:"stretch"}}>
+        <div style={{background:verdictBg,border:"1px solid "+verdictColor+"44",borderRadius:12,padding:"18px 22px",textAlign:"center",display:"flex",flexDirection:"column",justifyContent:"center"}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:verdictColor,fontFamily:font.body,marginBottom:5}}>PARTNER VERDICT</div>
+          <div style={{fontSize:24,fontWeight:800,color:verdictColor,fontFamily:font.display}}>{verdict||"–"}</div>
         </div>
-      )}
-
-      {/* Fix + Well */}
-      <div className="eval-fix-well" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-        {parsed.fixes.length>0&&(
-          <div style={{background:"rgba(185,28,28,0.04)",border:"1px solid rgba(185,28,28,0.15)",borderRadius:10,padding:16}}>
-            <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.red,fontFamily:font.body,margin:"0 0 10px"}}>WHAT TO FIX</p>
-            {parsed.fixes.map((f,i)=>(
-              <div key={i} style={{display:"flex",gap:8,marginBottom:8}}>
-                <span style={{fontSize:12,fontWeight:700,color:CS.red,flexShrink:0,fontFamily:font.body}}>{i+1}.</span>
-                <p style={{margin:0,fontSize:12.5,color:CS.textL,fontFamily:font.body,lineHeight:1.5}}>{f}</p>
-              </div>
-            ))}
-          </div>
-        )}
-        {parsed.wells.length>0&&(
-          <div style={{background:"rgba(21,128,61,0.04)",border:"1px solid rgba(21,128,61,0.15)",borderRadius:10,padding:16}}>
-            <p style={{fontSize:11,fontWeight:700,letterSpacing:"0.08em",color:CS.green,fontFamily:font.body,margin:"0 0 10px"}}>WHAT WAS DONE WELL</p>
-            {parsed.wells.map((w,i)=>(
-              <div key={i} style={{display:"flex",gap:8,marginBottom:8}}>
-                <span style={{fontSize:12,fontWeight:700,color:CS.green,flexShrink:0,fontFamily:font.body}}>{i+1}.</span>
-                <p style={{margin:0,fontSize:12.5,color:CS.textL,fontFamily:font.body,lineHeight:1.5}}>{w}</p>
-              </div>
-            ))}
-          </div>
-        )}
+        <div style={{background:CS.white,border:"1px solid "+(overall!==null?scoreCol+"44":CS.border),borderRadius:12,padding:"18px 24px",textAlign:"center",display:"flex",flexDirection:"column",justifyContent:"center",minWidth:100}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:CS.textLL,fontFamily:font.body,marginBottom:5}}>OVERALL</div>
+          <div style={{fontSize:30,fontWeight:800,color:scoreCol,fontFamily:font.display,lineHeight:1}}>{overall!==null?overall:"–"}</div>
+          {overall!==null&&<div style={{fontSize:11,color:CS.textLL,fontFamily:font.body,marginTop:2}}>/10</div>}
+        </div>
       </div>
 
-      {/* Raw fallback */}
-      <details style={{marginTop:4}}>
-        <summary style={{fontSize:12,color:CS.textLL,cursor:"pointer",fontFamily:font.body,userSelect:"none"}}>View raw evaluation text</summary>
-        <div style={{marginTop:10,whiteSpace:"pre-wrap",fontFamily:font.mono,fontSize:11.5,background:CS.cream,padding:16,borderRadius:8,lineHeight:1.7,color:CS.navy,maxHeight:300,overflow:"auto"}}>{evaluation}</div>
-      </details>
+      {/* Full evaluation text */}
+      <div style={{background:CS.cream,border:"1px solid "+CS.border,borderRadius:12,padding:"20px 22px"}}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:"0.14em",color:CS.textLL,fontFamily:font.body,marginBottom:14}}>EVALUATION</div>
+        <div style={{whiteSpace:"pre-wrap",fontFamily:font.body,fontSize:13,lineHeight:1.75,color:CS.navy}}>{evaluation}</div>
+      </div>
 
       <button onClick={onReset} style={{padding:"12px 0",background:CS.navy,color:CS.cream,border:"none",borderRadius:8,fontSize:13,fontWeight:600,cursor:"pointer",fontFamily:font.body}}>Start New Session</button>
     </div>
